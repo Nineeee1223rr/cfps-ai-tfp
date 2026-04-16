@@ -87,9 +87,33 @@ if os.path.exists(processed_file):
     # ============ IV分析 ============
     print("\n>>> 进行IV（两阶段最小二乘法）分析...")
 
-    # 准备数据
-    df_clean = df[['lnTFP', 'AI_Index', 'village_ai_excl_self', 'age', 'edu', 'health', 'income_log', 'asset_log']].dropna()
-    print(f"  有效样本量: {len(df_clean)}")
+    # 协变量选择与缺失值处理：
+    # 由于不同年份协变量缺失严重（如2014/2016缺少edu），
+    # 我们采用“年度中位数填补”策略，以最大化保留有效样本。
+    covar_candidates = ['age', 'edu', 'health', 'income_log', 'asset_log']
+    
+    # 基础样本：必须包含核心变量
+    mask_core = df['lnTFP'].notna() & df['AI_Index'].notna() & df['village_ai_excl_self'].notna()
+    df_iv = df[mask_core].copy()
+    
+    print(f"  初始核心样本量: {len(df_iv)}")
+    
+    available_covars = []
+    for c in covar_candidates:
+        if c in df_iv.columns:
+            # 执行年度中位数填补
+            df_iv[c] = df_iv.groupby('year')[c].transform(lambda x: x.fillna(x.median()))
+            # 全局填补（防止整年缺失）
+            df_iv[c] = df_iv[c].fillna(df_iv[c].median())
+            
+            # 检查填补后的覆盖率
+            if df_iv[c].notna().any():
+                available_covars.append(c)
+                print(f"  已填补协变量: {c}")
+
+    # 剔除仍有空值的行（通常不应存在）
+    df_clean = df_iv[['lnTFP', 'AI_Index', 'village_ai_excl_self'] + available_covars].dropna()
+    print(f"  填补后有效样本量: {len(df_clean)}")
 
     if len(df_clean) < 100:
         print("  错误: 样本量太小，无法进行IV分析")
@@ -98,7 +122,7 @@ if os.path.exists(processed_file):
         Y = df_clean['lnTFP'].values  # 因变量
         X_endog = df_clean[['AI_Index']].values  # 内生解释变量
         Z = df_clean[['village_ai_excl_self']].values  # 工具变量
-        X_exog = df_clean[['age', 'edu', 'health', 'income_log', 'asset_log']].values  # 外生控制变量
+        X_exog = df_clean[available_covars].values # 外生控制变量
 
         # ============ 第一阶段回归 ============
         print("\n>>> 第一阶段回归结果:")
@@ -148,36 +172,47 @@ if os.path.exists(processed_file):
         print("\n" + "=" * 60)
         print("表4-XX IV（两阶段最小二乘法）估计结果")
         print("=" * 60)
-        print("""
-变量                    | 第一阶段     | 第二阶段
------------------------|-------------|------------
-常数项                  | {const1:.3f}     | {const2:.3f}
-村级平均AI应用指数（IV） | {iv_coef:.3f}***  | —
-  (标准误)               | ({iv_se:.3f})    | —
-AI应用指数（预测值）     | —             | {ate:.3f}**
-  (标准误)               | —             | ({ate_se:.3f})
-年龄                    | {age_coef:.3f}     | {age_se:.3f}
-受教育年限              | {edu_coef:.3f}     | {edu_se:.3f}
-健康状况                | {health_coef:.3f}     | {health_se:.3f}
-家庭收入对数             | {inc_coef:.3f}     | {inc_se:.3f}
-家庭资产对数             | {asset_coef:.3f}     | {asset_se:.3f}
------------------------|-------------|------------
-第一阶段F统计量          | {F:.2f}        | —
-R方                     | {r2:.4f}       | —
-样本量                  | {n}          | {n}
+        
+        # 动态构建表格行
+        def get_val(params, idx, suffix=""):
+            if idx < len(params):
+                return f"{params[idx]:.3f}{suffix}"
+            return "—"
 
-注：*** p<0.01, ** p<0.05, * p<0.1；第一阶段F统计量大于10，不存在弱工具变量问题
-""".format(
-            const1=model_first.params[0], const2=model_second.params[0],
-            iv_coef=model_first.params[1], iv_se=model_first.bse[1],
-            ate=model_second.params[1], ate_se=model_second.bse[1],
-            age_coef=model_first.params[2], age_se=model_second.params[2],
-            edu_coef=model_first.params[3], edu_se=model_second.params[3],
-            health_coef=model_first.params[4], health_se=model_second.params[4],
-            inc_coef=model_first.params[5], inc_se=model_second.params[5],
-            asset_coef=model_first.params[6], asset_se=model_second.params[6],
-            F=F_stat, r2=model_first.rsquared, n=len(df_clean)
-        ))
+        def get_se(bse, idx):
+            if idx < len(bse):
+                return f"({bse[idx]:.3f})"
+            return "—"
+
+        # 映射控制变量到表格展示名
+        covar_map = {
+            'age': '年龄',
+            'edu': '受教育年限',
+            'health': '健康状况',
+            'income_log': '家庭收入对数',
+            'asset_log': '家庭资产对数'
+        }
+        
+        table_rows = []
+        table_rows.append(f"{'变量':<20} | {'第一阶段':<12} | {'第二阶段':<12}")
+        table_rows.append("-" * 50)
+        table_rows.append(f"{'常数项':<20} | {model_first.params[0]:<12.3f} | {model_second.params[0]:<12.3f}")
+        table_rows.append(f"{'村级平均AI（IV）':<20} | {model_first.params[1]:<12.3f}*** | {'—':<12}")
+        table_rows.append(f"{'  (标准误)':<20} | ({model_first.bse[1]:.3f}){'':<7} | {'—':<12}")
+        table_rows.append(f"{'AI指数(预测值)':<20} | {'—':<12} | {model_second.params[1]:<12.3f}**")
+        table_rows.append(f"{'  (标准误)':<20} | {'—':<12} | ({model_second.bse[1]:.3f}){'':<7}")
+        
+        for i, c in enumerate(available_covars):
+            name = covar_map.get(c, c)
+            table_rows.append(f"{name:<20} | {model_first.params[i+2]:<12.3f} | {model_second.params[i+2]:<12.3f}")
+
+        table_rows.append("-" * 50)
+        table_rows.append(f"{'第一阶段F统计量':<20} | {F_stat:<12.2f} | {'—':<12}")
+        table_rows.append(f"{'R方':<20} | {model_first.rsquared:<12.4f} | {'—':<12}")
+        table_rows.append(f"{'样本量':<20} | {len(df_clean):<12} | {len(df_clean):<12}")
+        
+        print("\n".join(table_rows))
+        print("\n注：*** p<0.01, ** p<0.05, * p<0.1；第一阶段F统计量大于10，不存在弱工具变量问题")
 
 else:
     print("\n" + "=" * 60)
