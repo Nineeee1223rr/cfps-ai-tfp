@@ -75,3 +75,21 @@ python .\causal_analysis.py
 ## 复现备注
 
 - GRF/EconML 在 Windows + Python3.14 上可能需要 C++ 编译器，安装会失败。本项目默认使用无需编译的替代方法（T-learner RandomForest）来估计异质性处理效应。
+
+## 数据说明
+
+本项目使用的原始数据来自CFPS数据库，受数据使用协议限制，原始数据文件（.dta）不可上传。
+
+如需复现分析，请：
+1. 访问 [CFPS数据申请网站](https://ipss.pkuh6.edu.cn/cfps/)
+2. 申请获得CFPS数据使用权
+3. 将数据文件放置于 `data/raw/` 目录
+4. 运行 `python causal_analysis.py` 生成结果
+
+## 输出对照
+
+| 论文表格 | 对应输出文件 | 验证方法 |
+|----------|--------------|----------|
+| 表4-1 | descriptive_stats_full.csv | 对比均值标准差 |
+| 表4-4 | ols_results.csv | 对比系数t值 |
+| 表4-6 | causal_forest_proxy_summary.csv | 对比ATE |

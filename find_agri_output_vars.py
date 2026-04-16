@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+"""
+变量扫描脚本：定位CFPS中的农业产出变量
+功能：根据问卷版本优先级匹配农业总产值变量
+"""
+
 import os
 import re
 import csv
