@@ -589,9 +589,9 @@ def _choose_covariates(panel: pd.DataFrame, outcome: str, main: str, candidates:
     for c in candidates:
         if c not in panel.columns:
             continue
-        n = int((base & panel[c].notna()).sum())
-        scores.append((n, c))
-        report_rows.append({"step": "single", "var": c, "n": n})
+        n_single = int((base & panel[c].notna()).sum())
+        scores.append((n_single, c))
+        report_rows.append({"step": "single", "var": c, "n": n_single})
 
     # prefer covariates with higher overlap
     scores.sort(reverse=True)
