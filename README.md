@@ -60,6 +60,7 @@ python .\causal_analysis.py
 - `psm_results.csv`：PSM 结果
 - `pca_loadings.csv`：AI_Index PCA 载荷
 - `causal_forest_proxy_summary.csv`：因果森林替代（T-learner RF）汇总
+- `iv_results.csv`：IV（工具变量法）回归结果汇总
 - `heterogeneity_by_edu.csv`：按教育分组异质性
 - `heterogeneity_by_asset.csv`：按资产分组异质性
 - `method_comparison.png`：方法对比图
@@ -92,4 +93,5 @@ python .\causal_analysis.py
 |----------|--------------|----------|
 | 表4-1 | descriptive_stats_full.csv | 对比均值标准差 |
 | 表4-4 | ols_results.csv | 对比系数t值 |
+| 表4-5 | iv_results.csv | 对比IV回归系数与F统计量 |
 | 表4-6 | causal_forest_proxy_summary.csv | 对比ATE |
