@@ -1,0 +1,17 @@
+﻿step,var,n
+base,(outcome & main),9031
+single,age,6111
+single,edu,3288
+single,health,7485
+single,train,984
+single,income_log,5262
+single,asset_log,8668
+single,income,5285
+single,asset,8861
+add,asset,8861
+add,asset_log,8668
+add,health,7228
+add,age,4711
+add,income,2563
+add,income_log,2555
+final,asset+asset_log+health+age+income+income_log,2555

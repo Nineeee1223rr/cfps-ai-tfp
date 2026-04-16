@@ -1,0 +1,39 @@
+# ---- CFPS compliance: NEVER commit raw CFPS data or record-level outputs ----
+
+# Raw data and sensitive folders/files
+/原始数据/
+/论文/
+/data/
+
+# Large / record-level outputs
+/output/processed_data.csv
+/output/processed_data_full.csv
+
+data.md
+lunwen.txt
+
+# Optional: ignore all output by default, then re-allow summary outputs
+# /output/*
+# !/output/descriptive_stats*.csv
+# !/output/ols_results.csv
+# !/output/psm_results.csv
+# !/output/pca_loadings.csv
+# !/output/causal_forest_proxy_summary.csv
+# !/output/heterogeneity_by_edu.csv
+# !/output/heterogeneity_by_asset.csv
+# !/output/method_comparison.png
+# !/output/model_sample_report.csv
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.venv/
+
+# OS/IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
